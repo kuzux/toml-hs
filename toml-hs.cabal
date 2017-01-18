@@ -21,4 +21,4 @@ library
                      , text
                      , attoparsec
                      , scientific
-                     , old-time
+                     , time

@@ -12,12 +12,13 @@ import qualified Data.Attoparsec.Text as A
 import qualified Data.Attoparsec.Combinator as AC
 import Data.Attoparsec.Text (Parser)
 import Data.Scientific (Scientific)
-import Data.Text as T
-import System.Time
+import qualified Data.Text as T
+import Data.Time.Clock (UTCTime(..), secondsToDiffTime)
+import Data.Time.Calendar (fromGregorian)
 
 data TValue = TNumber Scientific
             | TBool Bool
-            | TDateTime ClockTime
+            | TDateTime UTCTime
             | TString String
             | TArray [TValue]
             deriving (Eq, Show)
@@ -44,21 +45,10 @@ datetime = do year <- integer
               A.char ':'
               second <- integer
               A.char 'Z'
-              return $ TDateTime $ toClockTime $ CalendarTime { ctYear = year
-                                                              , ctMonth = toMonth month
-                                                              , ctDay = day
-                                                              , ctHour = hour
-                                                              , ctMin = minute
-                                                              , ctSec = second
-                                                              , ctTZ = 0
-                                                              , ctPicosec = 0 
-                                                              , ctWDay = Monday
-                                                              , ctYDay = 0
-                                                              , ctTZName = ""
-                                                              , ctIsDST = False
-                                                              }
-        where months = [ January, February, March, April, May, June, July, August, September, October, November, December ]
-              toMonth m = months !! (m-1)
+              return . TDateTime $ UTCTime { utctDay = fromGregorian (fromIntegral year) month day
+                                           , utctDayTime = secondsToDiffTime . fromIntegral $ secondsInDay hour minute second 
+                                           }
+        where secondsInDay h m s = h * 3600 + m * 60 + s 
 
 string :: Parser TValue
 string = do A.char '\"'
